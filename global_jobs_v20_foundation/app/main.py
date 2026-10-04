@@ -8,7 +8,7 @@ from .database import Base, engine, get_db
 from .matching import match_score
 from .models import Employer, Job, JobSeeker
 from .schemas import JobCreate, JobOut
-
+from .job_sources import fetch_lever_feed
 Base.metadata.create_all(bind=engine)
 
 APP_VERSION = "20.1-job-ingestion"
