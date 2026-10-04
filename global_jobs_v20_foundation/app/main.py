@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy import or_
@@ -9,19 +10,27 @@ from .matching import match_score
 from .models import Employer, Job, JobSeeker
 from .schemas import JobCreate, JobOut
 from .job_sources import fetch_lever_feed
+
+
 Base.metadata.create_all(bind=engine)
 
-APP_VERSION = "20.1-job-ingestion"
+
+APP_VERSION = "20.2-job-ingestion"
+
 
 app = FastAPI(
     title="Talvexa",
     version=APP_VERSION,
-    description="AI-first global employment and job-matching platform.",
+    description=(
+        "AI-first global employment "
+        "and job-matching platform."
+    ),
 )
 
 
 @app.get("/health")
 def health():
+
     return {
         "status": "ok",
         "service": "talvexa",
@@ -29,200 +38,368 @@ def health():
     }
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get(
+    "/",
+    response_class=HTMLResponse,
+)
 def home():
-    return """<!doctype html>
+
+    return """
+<!doctype html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Talvexa — Find your next opportunity</title>
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+>
+
+<title>Talvexa</title>
+
 <style>
-*{box-sizing:border-box}
-body{
-    margin:0;
-    font-family:system-ui,sans-serif;
-    background:#f5f7fb;
-    color:#172033
+
+* {
+    box-sizing: border-box;
 }
-header{
-    background:#101828;
-    color:white;
-    padding:42px 20px
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f5f7fb;
+    color: #172033;
 }
-main{
-    max-width:1100px;
-    margin:auto;
-    padding:24px
+
+header {
+    background: #101828;
+    color: white;
+    padding: 48px 20px;
 }
-.card{
-    background:white;
-    border-radius:16px;
-    padding:22px;
-    margin:14px 0;
-    box-shadow:0 4px 18px rgba(0,0,0,.06)
+
+main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 24px;
 }
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:8px
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    margin: 14px 0;
+    box-shadow: 0 4px 18px rgba(0,0,0,.06);
 }
-input,select,button{
-    width:100%;
-    padding:12px;
-    border:1px solid #d0d5dd;
-    border-radius:10px;
-    margin:4px 0
+
+.grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
 }
-button{
-    cursor:pointer;
-    background:#101828;
-    color:white;
-    border:0
+
+input,
+select,
+button {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    margin: 4px 0;
 }
-a{text-decoration:none}
+
+button {
+    cursor: pointer;
+    background: #101828;
+    color: white;
+    border: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+.small {
+    color: #667085;
+    font-size: 14px;
+}
+
 </style>
+
 </head>
 
 <body>
 
 <header>
+
 <main>
+
 <h1>Talvexa</h1>
-<p>Find your next opportunity — locally, remotely or internationally.</p>
+
+<p>
+Find your next opportunity —
+locally, remotely or internationally.
+</p>
+
 </main>
+
 </header>
 
 <main>
 
 <section class="card">
-<h2>Search jobs</h2>
+
+<h2>Find jobs</h2>
 
 <div class="grid">
-<input id="q" placeholder="Job title or skill">
-<input id="country" placeholder="Country">
+
+<input
+    id="q"
+    placeholder="Job title or skill"
+>
+
+<input
+    id="country"
+    placeholder="Country"
+>
 
 <select id="mode">
-<option value="">Any work mode</option>
-<option value="remote">Remote</option>
-<option value="hybrid">Hybrid</option>
-<option value="onsite">On-site</option>
+
+<option value="">
+Any work mode
+</option>
+
+<option value="remote">
+Remote
+</option>
+
+<option value="hybrid">
+Hybrid
+</option>
+
+<option value="onsite">
+On-site
+</option>
+
 </select>
+
 </div>
 
-<button onclick="searchJobs()">Find jobs</button>
+<button onclick="searchJobs()">
+Find jobs
+</button>
+
 </section>
 
 <div id="results"></div>
 
 </main>
 
+
 <script>
 
-async function searchJobs(){
+async function searchJobs() {
 
-    const p = new URLSearchParams();
+    const params =
+        new URLSearchParams();
 
-    if(q.value) p.set("q", q.value);
-    if(country.value) p.set("country", country.value);
-    if(mode.value) p.set("work_mode", mode.value);
+    const query =
+        document.getElementById("q").value;
 
-    const r = await fetch("/api/jobs?" + p.toString());
+    const country =
+        document.getElementById("country").value;
 
-    if(!r.ok){
-        results.innerHTML =
+    const mode =
+        document.getElementById("mode").value;
+
+    if (query) {
+        params.set("q", query);
+    }
+
+    if (country) {
+        params.set("country", country);
+    }
+
+    if (mode) {
+        params.set("work_mode", mode);
+    }
+
+    const response =
+        await fetch(
+            "/api/jobs?" +
+            params.toString()
+        );
+
+    if (!response.ok) {
+
+        document.getElementById(
+            "results"
+        ).innerHTML =
             "<div class='card'>Unable to load jobs.</div>";
+
         return;
     }
 
-    const jobs = await r.json();
+    const jobs =
+        await response.json();
 
-    results.innerHTML = jobs.length
-        ? jobs.map(j => `
+    if (!jobs.length) {
 
-<article class="card">
+        document.getElementById(
+            "results"
+        ).innerHTML =
+            "<div class='card'>" +
+            "No matching jobs found." +
+            "</div>";
 
-<h2>${esc(j.title)}</h2>
+        return;
+    }
 
-<p>
-<b>${esc(j.country || "Location not listed")}</b>
-· ${esc(j.work_mode || "Work mode not listed")}
-</p>
+    document.getElementById(
+        "results"
+    ).innerHTML = jobs.map(job => {
 
-<p>
-${esc((j.description || "").slice(0,300))}
-</p>
+        const salary =
+            job.salary_max
+            ? `
+            <p>
+            Salary:
+            ${escapeHtml(job.currency || "")}
+            ${job.salary_min || ""}
+            –
+            ${job.salary_max}
+            </p>
+            `
+            : "";
 
-${j.salary_max
-    ? `<p>
-        Salary:
-        ${esc(j.currency || "")}
-        ${j.salary_min || ""}
-        –
-        ${j.salary_max}
-       </p>`
-    : ""
+        const apply =
+            job.application_url
+            ? `
+            <a
+                href="${escapeAttribute(
+                    job.application_url
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <button>Apply</button>
+            </a>
+            `
+            : "";
+
+        return `
+        <article class="card">
+
+        <h2>
+        ${escapeHtml(job.title)}
+        </h2>
+
+        <p>
+        <b>
+        ${escapeHtml(
+            job.country ||
+            "Location not listed"
+        )}
+        </b>
+
+        ·
+
+        ${escapeHtml(
+            job.work_mode ||
+            "Work mode not listed"
+        )}
+        </p>
+
+        <p>
+        ${escapeHtml(
+            (job.description || "")
+            .slice(0, 400)
+        )}
+        </p>
+
+        ${salary}
+
+        <p class="small">
+        Source:
+        ${escapeHtml(
+            job.source || "Talvexa"
+        )}
+        </p>
+
+        ${apply}
+
+        </article>
+        `;
+
+    }).join("");
 }
 
-${j.application_url
-    ? `<a href="${attr(j.application_url)}"
-          target="_blank"
-          rel="noopener noreferrer">
-          <button>Apply</button>
-       </a>`
-    : ""
-}
 
-</article>
+function escapeHtml(value) {
 
-`).join("")
-        : "<div class='card'>No matching jobs found.</div>";
-}
-
-
-function esc(v){
-    return String(v).replace(
+    return String(value).replace(
         /[&<>"']/g,
-        c => ({
-            "&":"&amp;",
-            "<":"&lt;",
-            ">":"&gt;",
-            '"':"&quot;",
-            "'":"&#039;"
-        }[c])
+        character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        })[character]
     );
 }
 
 
-function attr(v){
-    return String(v).replace(
+function escapeAttribute(value) {
+
+    return String(value).replace(
         /["<>]/g,
-        c => ({
-            '"':"&quot;",
-            "<":"&lt;",
-            ">":"&gt;"
-        }[c])
+        character => ({
+            '"': "&quot;",
+            "<": "&lt;",
+            ">": "&gt;"
+        })[character]
     );
 }
 
 </script>
 
 </body>
-</html>"""
+
+</html>
+"""
 
 
-@app.get("/api/jobs", response_model=list[JobOut])
+@app.get(
+    "/api/jobs",
+    response_model=list[JobOut],
+)
 def search_jobs(
-    q: str | None = Query(default=None),
-    country: str | None = Query(default=None),
-    work_mode: str | None = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=200),
+    q: str | None = Query(
+        default=None
+    ),
+    country: str | None = Query(
+        default=None
+    ),
+    work_mode: str | None = Query(
+        default=None
+    ),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=200,
+    ),
     db: Session = Depends(get_db),
 ):
 
-    query = db.query(Job).filter(Job.is_active.is_(True))
+    query = db.query(Job).filter(
+        Job.is_active.is_(True)
+    )
 
     if q:
+
         term = f"%{q}%"
 
         query = query.filter(
@@ -235,30 +412,47 @@ def search_jobs(
         )
 
     if country:
+
         query = query.filter(
-            Job.country.ilike(f"%{country}%")
+            Job.country.ilike(
+                f"%{country}%"
+            )
         )
 
     if work_mode:
+
         query = query.filter(
-            Job.work_mode.ilike(work_mode)
+            Job.work_mode.ilike(
+                work_mode
+            )
         )
 
     return (
         query
-        .order_by(Job.created_at.desc())
+        .order_by(
+            Job.created_at.desc()
+        )
         .limit(limit)
         .all()
     )
 
 
-@app.post("/api/jobs", response_model=JobOut)
+@app.post(
+    "/api/jobs",
+    response_model=JobOut,
+)
 def create_job(
     payload: JobCreate,
     db: Session = Depends(get_db),
 ):
 
-    if not db.get(Employer, payload.employer_id):
+    employer = db.get(
+        Employer,
+        payload.employer_id,
+    )
+
+    if not employer:
+
         raise HTTPException(
             status_code=404,
             detail="Employer not found",
@@ -270,21 +464,30 @@ def create_job(
     )
 
     db.add(job)
+
     db.commit()
+
     db.refresh(job)
 
     return job
 
 
-@app.get("/api/jobs/{job_id}", response_model=JobOut)
+@app.get(
+    "/api/jobs/{job_id}",
+    response_model=JobOut,
+)
 def get_job(
     job_id: int,
     db: Session = Depends(get_db),
 ):
 
-    job = db.get(Job, job_id)
+    job = db.get(
+        Job,
+        job_id,
+    )
 
     if not job:
+
         raise HTTPException(
             status_code=404,
             detail="Job not found",
@@ -293,38 +496,56 @@ def get_job(
     return job
 
 
-@app.get("/api/jobs/{job_id}/match/{seeker_id}")
+@app.get(
+    "/api/jobs/{job_id}/match/{seeker_id}"
+)
 def get_match(
     job_id: int,
     seeker_id: int,
     db: Session = Depends(get_db),
 ):
 
-    job = db.get(Job, job_id)
-    seeker = db.get(JobSeeker, seeker_id)
+    job = db.get(
+        Job,
+        job_id,
+    )
+
+    seeker = db.get(
+        JobSeeker,
+        seeker_id,
+    )
 
     if not job or not seeker:
+
         raise HTTPException(
             status_code=404,
-            detail="Job or seeker not found",
+            detail=(
+                "Job or seeker not found"
+            ),
         )
 
     return {
         "job_id": job.id,
         "seeker_id": seeker.id,
-        "match_score": match_score(seeker, job),
+        "match_score": match_score(
+            seeker,
+            job,
+        ),
     }
 
 
-@app.get("/api/ingestion/status")
+@app.get(
+    "/api/ingestion/status"
+)
 def ingestion_status():
 
     return {
         "status": "ready",
         "version": APP_VERSION,
         "message": (
-            "Talvexa is ready for authorised "
-            "job-source integrations."
+            "Talvexa is ready for "
+            "authorised job-source "
+            "integrations."
         ),
         "supported_sources": [
             "employer career pages",
@@ -333,3 +554,160 @@ def ingestion_status():
             "direct employer submissions",
         ],
     }
+
+
+@app.get(
+    "/api/ingestion/lever/{company_slug}"
+)
+def import_lever_jobs(
+    company_slug: str,
+    db: Session = Depends(get_db),
+):
+
+    try:
+
+        jobs = fetch_lever_feed(
+            company_slug
+        )
+
+        imported = 0
+        skipped = 0
+
+        employer = (
+            db.query(Employer)
+            .filter(
+                Employer.website.ilike(
+                    f"%lever.co/{company_slug}%"
+                )
+            )
+            .first()
+        )
+
+        if not employer:
+
+            employer = Employer(
+                name=company_slug,
+                website=(
+                    "https://jobs.lever.co/"
+                    f"{company_slug}"
+                ),
+                country=None,
+                verified=False,
+            )
+
+            db.add(employer)
+            db.flush()
+
+        for item in jobs:
+
+            application_url = (
+                item.get(
+                    "application_url"
+                )
+            )
+
+            if not application_url:
+
+                skipped += 1
+                continue
+
+            existing = (
+                db.query(Job)
+                .filter(
+                    Job.application_url
+                    == application_url
+                )
+                .first()
+            )
+
+            if existing:
+
+                skipped += 1
+                continue
+
+            location = item.get(
+                "location",
+                ""
+            )
+
+            city = None
+            country = None
+
+            if location:
+
+                parts = [
+                    part.strip()
+                    for part in location.split(",")
+                    if part.strip()
+                ]
+
+                if parts:
+                    city = parts[0]
+
+                if len(parts) > 1:
+                    country = parts[-1]
+
+            job = Job(
+                employer_id=employer.id,
+                title=item.get(
+                    "title",
+                    ""
+                ),
+                description=item.get(
+                    "description",
+                    ""
+                ),
+                country=country,
+                city=city,
+                address=None,
+                work_mode=item.get(
+                    "work_mode",
+                    "onsite",
+                ),
+                employment_type=item.get(
+                    "employment_type",
+                    "full-time",
+                ),
+                salary_min=None,
+                salary_max=None,
+                currency=None,
+                skills="",
+                qualifications="",
+                work_authorisation=(
+                    "Check the employer's "
+                    "requirements before applying."
+                ),
+                application_url=(
+                    application_url
+                ),
+                source="Lever",
+                source_url=item.get(
+                    "source_url"
+                ),
+                is_active=True,
+                verified_at=datetime.utcnow(),
+            )
+
+            db.add(job)
+
+            imported += 1
+
+        db.commit()
+
+        return {
+            "ok": True,
+            "source": "Lever",
+            "company": company_slug,
+            "found": len(jobs),
+            "imported": imported,
+            "skipped": skipped,
+        }
+
+    except Exception as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
