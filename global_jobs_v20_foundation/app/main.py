@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy import or_
@@ -12,25 +11,19 @@ from .schemas import JobCreate, JobOut
 from .job_sources import fetch_lever_feed
 
 
-Base.metadata.create_all(bind=engine)
-
-
 APP_VERSION = "20.2-job-ingestion"
 
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Talvexa",
     version=APP_VERSION,
-    description=(
-        "AI-first global employment "
-        "and job-matching platform."
-    ),
+    description="Global AI-powered job discovery and matching platform.",
 )
 
 
 @app.get("/health")
 def health():
-
     return {
         "status": "ok",
         "service": "talvexa",
@@ -38,137 +31,190 @@ def health():
     }
 
 
-@app.get(
-    "/",
-    response_class=HTMLResponse,
-)
+@app.get("/", response_class=HTMLResponse)
 def home():
-
     return """
 <!doctype html>
-
 <html lang="en">
-
 <head>
-
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
->
-
-<title>Talvexa</title>
+<title>Talvexa — Find Me Work</title>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: system-ui, sans-serif;
+    font-family: Inter, system-ui, Arial, sans-serif;
     background: #f5f7fb;
     color: #172033;
 }
 
 header {
-    background: #101828;
+    background: linear-gradient(135deg, #111827, #243b53);
     color: white;
-    padding: 48px 20px;
+    padding: 70px 20px;
+}
+
+.hero {
+    max-width: 1100px;
+    margin: auto;
+}
+
+.hero h1 {
+    font-size: clamp(42px, 7vw, 76px);
+    margin: 0 0 15px;
+    letter-spacing: -2px;
+}
+
+.hero p {
+    font-size: 20px;
+    max-width: 700px;
+    opacity: .9;
 }
 
 main {
     max-width: 1100px;
     margin: auto;
-    padding: 24px;
+    padding: 30px 20px 70px;
 }
 
 .card {
     background: white;
-    border-radius: 16px;
-    padding: 22px;
-    margin: 14px 0;
-    box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    border-radius: 18px;
+    padding: 24px;
+    margin: 18px 0;
+    box-shadow: 0 8px 30px rgba(0,0,0,.07);
+}
+
+.search-box {
+    margin-top: -45px;
+    position: relative;
 }
 
 .grid {
     display: grid;
-    grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap: 10px;
 }
 
 input,
 select,
 button {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
+    border-radius: 11px;
     border: 1px solid #d0d5dd;
-    border-radius: 10px;
-    margin: 4px 0;
+    font-size: 16px;
 }
 
 button {
-    cursor: pointer;
-    background: #101828;
+    background: #111827;
     color: white;
     border: 0;
+    cursor: pointer;
+    font-weight: 700;
 }
 
-a {
+button:hover {
+    opacity: .9;
+}
+
+.search-button {
+    margin-top: 10px;
+}
+
+.job {
+    border: 1px solid #e4e7ec;
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 14px;
+}
+
+.job h3 {
+    margin-top: 0;
+}
+
+.badge {
+    display: inline-block;
+    background: #eef2ff;
+    padding: 6px 10px;
+    border-radius: 20px;
+    margin: 3px;
+    font-size: 13px;
+}
+
+.apply {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 12px 18px;
+    background: #111827;
+    color: white;
     text-decoration: none;
+    border-radius: 10px;
+    font-weight: 700;
 }
 
-.small {
-    color: #667085;
-    font-size: 14px;
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+    gap: 12px;
 }
 
+.stat {
+    background: #f8fafc;
+    padding: 18px;
+    border-radius: 14px;
+}
+
+.stat strong {
+    display: block;
+    font-size: 28px;
+}
 </style>
-
 </head>
 
 <body>
 
 <header>
-
-<main>
+<div class="hero">
 
 <h1>Talvexa</h1>
 
 <p>
-Find your next opportunity —
-locally, remotely or internationally.
+Find me work. Search local, remote and international opportunities
+from employers and authorised job sources around the world.
 </p>
 
-</main>
-
+</div>
 </header>
 
 <main>
 
-<section class="card">
+<section class="card search-box">
 
-<h2>Find jobs</h2>
+<h2>Find me work</h2>
 
 <div class="grid">
 
 <input
-    id="q"
-    placeholder="Job title or skill"
->
+id="q"
+placeholder="Job title, skill or keyword"
+/>
 
 <input
-    id="country"
-    placeholder="Country"
->
+id="country"
+placeholder="Country"
+/>
 
 <select id="mode">
 
 <option value="">
-Any work mode
+Any work arrangement
 </option>
 
 <option value="remote">
@@ -187,13 +233,60 @@ On-site
 
 </div>
 
-<button onclick="searchJobs()">
-Find jobs
+<button
+class="search-button"
+onclick="searchJobs()"
+>
+Search jobs
 </button>
 
 </section>
 
-<div id="results"></div>
+
+<section class="card">
+
+<h2>Why Talvexa?</h2>
+
+<div class="stats">
+
+<div class="stat">
+<strong>🌍</strong>
+Global opportunities
+</div>
+
+<div class="stat">
+<strong>🤖</strong>
+AI-powered matching
+</div>
+
+<div class="stat">
+<strong>💼</strong>
+Local & remote work
+</div>
+
+<div class="stat">
+<strong>✈️</strong>
+International opportunities
+</div>
+
+</div>
+
+</section>
+
+
+<section>
+
+<h2>Job opportunities</h2>
+
+<div id="results">
+
+<div class="card">
+Search above to find available jobs.
+</div>
+
+</div>
+
+</section>
 
 </main>
 
@@ -202,144 +295,115 @@ Find jobs
 
 async function searchJobs() {
 
-    const params =
-        new URLSearchParams();
+    const params = new URLSearchParams();
 
-    const query =
-        document.getElementById("q").value;
+    const qValue = document.getElementById("q").value.trim();
+    const countryValue = document.getElementById("country").value.trim();
+    const modeValue = document.getElementById("mode").value;
 
-    const country =
-        document.getElementById("country").value;
-
-    const mode =
-        document.getElementById("mode").value;
-
-    if (query) {
-        params.set("q", query);
+    if (qValue) {
+        params.set("q", qValue);
     }
 
-    if (country) {
-        params.set("country", country);
+    if (countryValue) {
+        params.set("country", countryValue);
     }
 
-    if (mode) {
-        params.set("work_mode", mode);
+    if (modeValue) {
+        params.set("work_mode", modeValue);
     }
 
-    const response =
-        await fetch(
-            "/api/jobs?" +
-            params.toString()
-        );
+    const results = document.getElementById("results");
 
-    if (!response.ok) {
+    results.innerHTML =
+        '<div class="card">Searching...</div>';
 
-        document.getElementById(
-            "results"
-        ).innerHTML =
-            "<div class='card'>Unable to load jobs.</div>";
+    try {
 
-        return;
+        const response =
+            await fetch("/api/jobs?" + params.toString());
+
+        const jobs = await response.json();
+
+        if (!jobs.length) {
+
+            results.innerHTML =
+                '<div class="card">No matching jobs found yet.</div>';
+
+            return;
+        }
+
+        results.innerHTML = jobs.map(job => {
+
+            const salary =
+                job.salary_max
+                    ? `<p>Salary: ${esc(job.currency || "")}
+                       ${job.salary_min || ""}
+                       – ${job.salary_max}</p>`
+                    : "";
+
+            const apply =
+                job.application_url
+                    ? `<a class="apply"
+                         href="${attr(job.application_url)}"
+                         target="_blank"
+                         rel="noopener noreferrer">
+                         Apply
+                       </a>`
+                    : "";
+
+            return `
+                <article class="job">
+
+                    <h3>${esc(job.title)}</h3>
+
+                    <p>
+                        <span class="badge">
+                            ${esc(job.work_mode || "unknown")}
+                        </span>
+
+                        <span class="badge">
+                            ${esc(job.employment_type || "employment")}
+                        </span>
+                    </p>
+
+                    <p>
+                        📍 ${esc(
+                            [job.city, job.country]
+                            .filter(Boolean)
+                            .join(", ")
+                            || "Location not listed"
+                        )}
+                    </p>
+
+                    <p>
+                        ${esc(
+                            (job.description || "")
+                            .slice(0, 400)
+                        )}
+                    </p>
+
+                    ${salary}
+
+                    ${apply}
+
+                </article>
+            `;
+
+        }).join("");
+
+    } catch (error) {
+
+        results.innerHTML =
+            '<div class="card">Unable to search jobs right now.</div>';
+
     }
-
-    const jobs =
-        await response.json();
-
-    if (!jobs.length) {
-
-        document.getElementById(
-            "results"
-        ).innerHTML =
-            "<div class='card'>" +
-            "No matching jobs found." +
-            "</div>";
-
-        return;
-    }
-
-    document.getElementById(
-        "results"
-    ).innerHTML = jobs.map(job => {
-
-        const salary =
-            job.salary_max
-            ? `
-            <p>
-            Salary:
-            ${escapeHtml(job.currency || "")}
-            ${job.salary_min || ""}
-            –
-            ${job.salary_max}
-            </p>
-            `
-            : "";
-
-        const apply =
-            job.application_url
-            ? `
-            <a
-                href="${escapeAttribute(
-                    job.application_url
-                )}"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                <button>Apply</button>
-            </a>
-            `
-            : "";
-
-        return `
-        <article class="card">
-
-        <h2>
-        ${escapeHtml(job.title)}
-        </h2>
-
-        <p>
-        <b>
-        ${escapeHtml(
-            job.country ||
-            "Location not listed"
-        )}
-        </b>
-
-        ·
-
-        ${escapeHtml(
-            job.work_mode ||
-            "Work mode not listed"
-        )}
-        </p>
-
-        <p>
-        ${escapeHtml(
-            (job.description || "")
-            .slice(0, 400)
-        )}
-        </p>
-
-        ${salary}
-
-        <p class="small">
-        Source:
-        ${escapeHtml(
-            job.source || "Talvexa"
-        )}
-        </p>
-
-        ${apply}
-
-        </article>
-        `;
-
-    }).join("");
 }
 
 
-function escapeHtml(value) {
+function esc(value) {
 
-    return String(value).replace(
+    return String(value ?? "").replace(
         /[&<>"']/g,
         character => ({
             "&": "&amp;",
@@ -347,50 +411,38 @@ function escapeHtml(value) {
             ">": "&gt;",
             '"': "&quot;",
             "'": "&#039;"
-        })[character]
+        }[character])
     );
+
 }
 
 
-function escapeAttribute(value) {
+function attr(value) {
 
-    return String(value).replace(
+    return String(value ?? "").replace(
         /["<>]/g,
         character => ({
             '"': "&quot;",
             "<": "&lt;",
             ">": "&gt;"
-        })[character]
+        }[character])
     );
+
 }
 
 </script>
 
 </body>
-
 </html>
 """
 
 
-@app.get(
-    "/api/jobs",
-    response_model=list[JobOut],
-)
+@app.get("/api/jobs", response_model=list[JobOut])
 def search_jobs(
-    q: str | None = Query(
-        default=None
-    ),
-    country: str | None = Query(
-        default=None
-    ),
-    work_mode: str | None = Query(
-        default=None
-    ),
-    limit: int = Query(
-        default=50,
-        ge=1,
-        le=200,
-    ),
+    q: str | None = Query(default=None),
+    country: str | None = Query(default=None),
+    work_mode: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
 
@@ -407,51 +459,39 @@ def search_jobs(
                 Job.title.ilike(term),
                 Job.description.ilike(term),
                 Job.skills.ilike(term),
-                Job.qualifications.ilike(term),
             )
         )
 
     if country:
 
         query = query.filter(
-            Job.country.ilike(
-                f"%{country}%"
-            )
+            Job.country.ilike(f"%{country}%")
         )
 
     if work_mode:
 
         query = query.filter(
-            Job.work_mode.ilike(
-                work_mode
-            )
+            Job.work_mode.ilike(work_mode)
         )
 
     return (
         query
-        .order_by(
-            Job.created_at.desc()
-        )
+        .order_by(Job.created_at.desc())
         .limit(limit)
         .all()
     )
 
 
-@app.post(
-    "/api/jobs",
-    response_model=JobOut,
-)
+@app.post("/api/jobs", response_model=JobOut)
 def create_job(
     payload: JobCreate,
     db: Session = Depends(get_db),
 ):
 
-    employer = db.get(
+    if not db.get(
         Employer,
-        payload.employer_id,
-    )
-
-    if not employer:
+        payload.employer_id
+    ):
 
         raise HTTPException(
             status_code=404,
@@ -464,27 +504,19 @@ def create_job(
     )
 
     db.add(job)
-
     db.commit()
-
     db.refresh(job)
 
     return job
 
 
-@app.get(
-    "/api/jobs/{job_id}",
-    response_model=JobOut,
-)
+@app.get("/api/jobs/{job_id}", response_model=JobOut)
 def get_job(
     job_id: int,
     db: Session = Depends(get_db),
 ):
 
-    job = db.get(
-        Job,
-        job_id,
-    )
+    job = db.get(Job, job_id)
 
     if not job:
 
@@ -496,32 +528,21 @@ def get_job(
     return job
 
 
-@app.get(
-    "/api/jobs/{job_id}/match/{seeker_id}"
-)
+@app.get("/api/jobs/{job_id}/match/{seeker_id}")
 def get_match(
     job_id: int,
     seeker_id: int,
     db: Session = Depends(get_db),
 ):
 
-    job = db.get(
-        Job,
-        job_id,
-    )
-
-    seeker = db.get(
-        JobSeeker,
-        seeker_id,
-    )
+    job = db.get(Job, job_id)
+    seeker = db.get(JobSeeker, seeker_id)
 
     if not job or not seeker:
 
         raise HTTPException(
             status_code=404,
-            detail=(
-                "Job or seeker not found"
-            ),
+            detail="Job or seeker not found",
         )
 
     return {
@@ -534,31 +555,24 @@ def get_match(
     }
 
 
-@app.get(
-    "/api/ingestion/status"
-)
+@app.get("/api/ingestion/status")
 def ingestion_status():
 
     return {
         "status": "ready",
         "version": APP_VERSION,
-        "message": (
-            "Talvexa is ready for "
-            "authorised job-source "
-            "integrations."
-        ),
+        "service": "Talvexa job ingestion",
         "supported_sources": [
-            "employer career pages",
-            "authorised APIs",
-            "licensed job feeds",
-            "direct employer submissions",
+            "Employer career pages",
+            "Authorised APIs",
+            "Licensed job feeds",
+            "Direct employer submissions",
+            "Lever public postings",
         ],
     }
 
 
-@app.get(
-    "/api/ingestion/lever/{company_slug}"
-)
+@app.post("/api/ingestion/lever/{company_slug}")
 def import_lever_jobs(
     company_slug: str,
     db: Session = Depends(get_db),
@@ -570,144 +584,112 @@ def import_lever_jobs(
             company_slug
         )
 
-        imported = 0
-        skipped = 0
-
-        employer = (
-            db.query(Employer)
-            .filter(
-                Employer.website.ilike(
-                    f"%lever.co/{company_slug}%"
-                )
-            )
-            .first()
-        )
-
-        if not employer:
-
-            employer = Employer(
-                name=company_slug,
-                website=(
-                    "https://jobs.lever.co/"
-                    f"{company_slug}"
-                ),
-                country=None,
-                verified=False,
-            )
-
-            db.add(employer)
-            db.flush()
-
-        for item in jobs:
-
-            application_url = (
-                item.get(
-                    "application_url"
-                )
-            )
-
-            if not application_url:
-
-                skipped += 1
-                continue
-
-            existing = (
-                db.query(Job)
-                .filter(
-                    Job.application_url
-                    == application_url
-                )
-                .first()
-            )
-
-            if existing:
-
-                skipped += 1
-                continue
-
-            location = item.get(
-                "location",
-                ""
-            )
-
-            city = None
-            country = None
-
-            if location:
-
-                parts = [
-                    part.strip()
-                    for part in location.split(",")
-                    if part.strip()
-                ]
-
-                if parts:
-                    city = parts[0]
-
-                if len(parts) > 1:
-                    country = parts[-1]
-
-            job = Job(
-                employer_id=employer.id,
-                title=item.get(
-                    "title",
-                    ""
-                ),
-                description=item.get(
-                    "description",
-                    ""
-                ),
-                country=country,
-                city=city,
-                address=None,
-                work_mode=item.get(
-                    "work_mode",
-                    "onsite",
-                ),
-                employment_type=item.get(
-                    "employment_type",
-                    "full-time",
-                ),
-                salary_min=None,
-                salary_max=None,
-                currency=None,
-                skills="",
-                qualifications="",
-                work_authorisation=(
-                    "Check the employer's "
-                    "requirements before applying."
-                ),
-                application_url=(
-                    application_url
-                ),
-                source="Lever",
-                source_url=item.get(
-                    "source_url"
-                ),
-                is_active=True,
-                verified_at=datetime.utcnow(),
-            )
-
-            db.add(job)
-
-            imported += 1
-
-        db.commit()
-
-        return {
-            "ok": True,
-            "source": "Lever",
-            "company": company_slug,
-            "found": len(jobs),
-            "imported": imported,
-            "skipped": skipped,
-        }
-
     except Exception as exc:
-
-        db.rollback()
 
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
+
+    employer_url = (
+        f"https://jobs.lever.co/{company_slug}"
+    )
+
+    employer = (
+        db.query(Employer)
+        .filter(
+            Employer.website == employer_url
+        )
+        .first()
+    )
+
+    if not employer:
+
+        employer = Employer(
+            name=company_slug,
+            website=employer_url,
+            verified=False,
+            created_at=datetime.utcnow(),
+        )
+
+        db.add(employer)
+        db.flush()
+
+    imported = 0
+    skipped = 0
+
+    for item in jobs:
+
+        application_url = item.get(
+            "application_url"
+        )
+
+        if not application_url:
+
+            skipped += 1
+            continue
+
+        existing = (
+            db.query(Job)
+            .filter(
+                Job.application_url
+                == application_url
+            )
+            .first()
+        )
+
+        if existing:
+
+            skipped += 1
+            continue
+
+        job = Job(
+            employer_id=employer.id,
+            title=item["title"],
+            description=item["description"],
+            country=None,
+            city=item.get("location"),
+            address=None,
+            work_mode=item.get(
+                "work_mode",
+                "onsite",
+            ),
+            employment_type=item.get(
+                "employment_type",
+                "full-time",
+            ),
+            salary_min=None,
+            salary_max=None,
+            currency=None,
+            skills="",
+            qualifications="",
+            work_authorisation=(
+                "Check the employer's "
+                "requirements before applying."
+            ),
+            application_url=application_url,
+            source=item.get(
+                "source",
+                "Lever",
+            ),
+            source_url=item.get(
+                "source_url"
+            ),
+            is_active=True,
+            verified_at=datetime.utcnow(),
+            created_at=datetime.utcnow(),
+        )
+
+        db.add(job)
+
+        imported += 1
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "company": company_slug,
+        "found": len(jobs),
+        "imported": imported,
+        "skipped": skipped,
+    }
