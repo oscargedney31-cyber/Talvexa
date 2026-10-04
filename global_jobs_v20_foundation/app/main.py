@@ -3,7 +3,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from .global_ingestion import router as global_ingestion_router
+from .app.global_ingestion import router as global_ingestion_router
 from .database import Base, engine, get_db
 from .matching import match_score
 from .models import Employer, Job, JobSeeker
